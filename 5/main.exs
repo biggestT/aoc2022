@@ -14,17 +14,47 @@ defmodule Day do
     |> String.split("\n")
     |> Enum.map(&parseStackRow/1)
     |> List.flatten()
+    |> Enum.reverse()
     |> Enum.group_by(fn {_, s} -> s end, fn {l, _} -> l end)
     |> IO.inspect()
+  end
+
+  def parseMovesRow(row) do
+    [_, ns, _, fs, _, ts] = row
+    |> String.split("\s")
+
+    [n, f, t] = [ns, fs, ts]
+                |> Enum.map(&String.to_integer/1)
+
+    [n, f-1, t-1]
   end
 
   def parseMoves(input) do
     input
     |> String.split("\n")
+    |> Enum.map(&parseMovesRow/1)
     |> IO.inspect()
   end
 
-  def part1(_stacksTxt, _movesTxt) do
+  defp doMove(stacks, [n, f, t]) do
+    [n, f, t] |> IO.inspect()
+    moved = stacks[f] |> Enum.take(-n)
+    %{stacks | t => stacks[t] ++ moved, f => stacks[f] |> Enum.take(length(stacks[f])-length(moved))}
+  end
+
+  defp doMoves(stacks, moves) do
+    case moves do
+      [] -> stacks
+      [head] -> doMoves(doMove(stacks, head) |> IO.inspect(), [])
+      [head | tail] -> doMoves(doMove(stacks, head) |> IO.inspect(), tail)
+    end
+  end
+
+  def part1(stacks, moves) do
+    result = doMoves(stacks, moves)
+       |> Enum.map(fn {_, v} -> v |> Enum.take(-1) end)
+       |> List.flatten()
+       |> Enum.join("")
   end
 
   def input do
@@ -33,7 +63,8 @@ defmodule Day do
       [stacksTxt, movesTxt] = input
       |> String.split("\n\n")
       |> Enum.take(2)
-      [_stacks, _moves] = [parseStacks(stacksTxt), parseMoves(movesTxt)]
+
+      [stacks, moves] = [parseStacks(stacksTxt), parseMoves(movesTxt)]
     else
       _ -> :error
     end
@@ -49,14 +80,14 @@ defmodule Day do
   end
 
   defp run_parts_with_timer(stacks, moves) do
-    run_with_timer(1, fn -> part1(stacks, moves) end)
+    run_with_timer(1, fn -> part1(stacks, moves |> Enum.take(100000)) end)
 #    run_with_timer(2, fn -> part2(input) end)
   end
 
   defp run_with_timer(part, fun) do
     {time, result} = :timer.tc(fun)
     IO.puts("Part #{part} (completed in #{format_time(time)}):\n")
-    IO.puts("#{result}\n")
+    IO.puts(result)
   end
 
   defp format_time(msec) when msec < 1_000, do: "#{msec}ms"
