@@ -80,7 +80,7 @@ defmodule Day do
   end
 
   defp run_parts_with_timer(stacks, moves) do
-    run_with_timer(1, fn -> part1(stacks, moves |> Enum.take(100000)) end)
+    run_with_timer(1, fn -> part1(stacks, moves) end)
 #    run_with_timer(2, fn -> part2(input) end)
   end
 
