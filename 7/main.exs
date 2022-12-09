@@ -1,40 +1,63 @@
 defmodule Day do
 
-  defp newCur(cur, cmd) do
-    p = cmd
-    |> String.split(" ")
-    |> Enum.at(1)
-    case p do
-      "..\n" -> cur |> Enum.drop(-1)
-      c -> cur
+  defp dir(line) do
+    case line do
+      "dir " <> name -> name
+      _ -> ""
     end
   end
 
-  defp newSum(cmd) do
-    cmd
-    |> String.split("\n")
-    |> Enum.map(&Regex.replace(~r/[^\d]/, &1, ""))
-    |> List.flatten()
-    |> Enum.filter(fn c -> c != "" end)
-    |> Enum.map(&String.to_integer/1)
-    |> Enum.sum()
+  defp file(line) do
+    digits = Regex.replace(~r/[^\d]/, line, "")
+    case digits do
+      "" -> 0
+      digits -> String.to_integer(digits)
+    end
   end
 
-  defp calcSum(cmds, cur, sums) do
+  defp ls(cmd, dirs) do
+    lines = cmd |> String.split("\n")
+    size = lines |> Enum.map(&file/1) |> Enum.sum()
+    unks = lines |> Enum.map(&dir/1) |> Enum.filter(fn c -> c != "" end) |> Enum.count()
+    newDir = %{:unks => unks, :size => size}
+    {newDir, dirs}
+  end
+
+  defp cd(cmd, dirs) do
+    case cmd do
+      "cd .." <> _ -> {dirs |> List.first, dirs |> Enum.drop(1)}
+      "cd " <> _ -> {%{:unks => -1, :size => 0}, dirs}
+    end
+  end
+
+  defp calcSum(cmds, dirs, total) do
     case cmds do
-      [] -> sums |> IO.inspect()
-      [cmd | tail] -> case String.first(cmd) do
-          "c" -> calcSum(tail, newCur(cur, cmd), sums)
-          "l" -> calcSum(tail, cur ++ [newSum(cmd)], sums ++ [(cur ++ [newSum(cmd)])])
+      [] -> total
+      [cmd | tail] ->
+        {curDir, dirs} = case cmd do
+          "cd" <> _ -> cd(cmd, dirs)
+          "ls" <> _ -> ls(cmd, dirs)
         end
-    end
+        curSize = curDir[:size]
+        {dirs, total} = case dirs do
+          [] -> {[curDir] ++ dirs, total}
+          [prevDir | remDirs] -> case curDir[:unks] do
+                    0 when (curSize > 100000) -> {[%{:unks => prevDir[:unks] - 1, :size => prevDir[:size] + curSize}] ++ remDirs, total}
+                    0 -> {[%{:unks => prevDir[:unks] - 1, :size => prevDir[:size] + curSize}] ++ remDirs, total + curDir[:size]}
+                                   -1 -> {dirs, total}
+                                   _ -> {[curDir] ++ dirs, total}
+            end
+        end
+#        {cmd, curDir, dirs, total} |> IO.inspect()
+        calcSum(tail, dirs, total)
+      end
   end
 
   def part1(cmds) do
-    calcSum(cmds, [], [])
+    calcSum(cmds, [], 0)
   end
 
-  def part2(stream) do
+  def part2(cmds) do
   end
 
   def input do
