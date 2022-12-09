@@ -1,42 +1,37 @@
 defmodule Day do
 
-  defp newPos(cmd, pos) do
+  defp newCur(cur, cmd) do
     p = cmd
     |> String.split(" ")
     |> Enum.at(1)
-    |> IO.inspect()
     case p do
-      "..\n" -> String.slice(pos, 0..-2)
-      c -> pos <> c
+      "..\n" -> cur |> Enum.drop(-1)
+      c -> cur
     end
   end
 
-  defp newSum(cmd, pos) do
-    sum = cmd
+  defp newSum(cmd) do
+    cmd
     |> String.split("\n")
     |> Enum.map(&Regex.replace(~r/[^\d]/, &1, ""))
     |> List.flatten()
     |> Enum.filter(fn c -> c != "" end)
     |> Enum.map(&String.to_integer/1)
     |> Enum.sum()
-    |> IO.inspect()
-
-    {pos, sum}
   end
 
-  defp calcSum(cmds, pos, psums) do
-    p = Regex.replace(~r/[^a-z]/, pos, "")
+  defp calcSum(cmds, cur, sums) do
     case cmds do
-      [] -> psums |> IO.inspect()
+      [] -> sums |> IO.inspect()
       [cmd | tail] -> case String.first(cmd) do
-          "c" -> calcSum(tail, newPos(cmd, p), psums)
-          "l" -> calcSum(tail, p, psums ++ [newSum(cmd, p)])
+          "c" -> calcSum(tail, newCur(cur, cmd), sums)
+          "l" -> calcSum(tail, cur ++ [newSum(cmd)], sums ++ [(cur ++ [newSum(cmd)])])
         end
     end
   end
 
   def part1(cmds) do
-    calcSum(cmds, "", [])
+    calcSum(cmds, [], [])
   end
 
   def part2(stream) do
@@ -48,7 +43,6 @@ defmodule Day do
         input
         |> String.split("$ ")
         |> Enum.drop(1)
-        |> IO.inspect()
     else
       _ -> :error
     end
