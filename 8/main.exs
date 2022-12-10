@@ -1,5 +1,18 @@
 defmodule Day do
 
+  # utility: transpose 2D array
+  defp flip(rows) do
+    numCols = rows |> List.first() |> length
+    rows
+    |> List.flatten()
+    |> Enum.with_index()
+    |> Enum.group_by(fn {_, v} -> rem(v, numCols) end)
+    |> Enum.map(fn {i, v} -> {i, v} end)
+    |> Enum.sort()
+    |> Enum.map(fn {_, v} -> Enum.map(v, fn {v, _} -> v end) end)
+  end
+
+  # is a tree visible from this direction?
   defp getVisibleDirection(trees, tallest, visible) do
     case trees do
       [] -> visible
@@ -14,20 +27,25 @@ defmodule Day do
     Enum.zip_with(lr, rl, fn x, y -> max(x, y) end)
   end
 
-  defp flip(rows) do
-    numCols = rows |> List.first() |> length
-    rows
-    |> List.flatten()
-    |> Enum.with_index()
-    |> Enum.group_by(fn {_, v} -> rem(v, numCols) end)
-    |> Enum.map(fn {i, v} -> {i, v} end)
-    |> Enum.sort()
-    |> Enum.map(fn {_, v} -> Enum.map(v, fn {v, _} -> v end) end)
+  # what is each trees view score for this direction?
+  defp getViewDirection(trees, views) do
+    case trees do
+      [] -> views
+      [last] -> getViewDirection([], views ++ [0])
+      [head | tail] ->
+        score = 1 + (Enum.find_index(tail, fn x -> x >= head end) || length(tail) - 1)
+        getViewDirection(tail, views ++ [score])
+    end
   end
 
-  def part1(rows) do
-    forest = rows |> Enum.map(fn x -> String.split(x, "", trim: true) end)
+  defp countViewScore(trees) do
+    lr = getViewDirection(trees, [])
+    rl = getViewDirection(trees |> Enum.reverse(), []) |> Enum.reverse()
+    Enum.zip_with(lr, rl, fn x, y -> x*y end)
+  end
 
+
+  def part1(forest) do
     horizontal = forest
                  |> Enum.map(fn l -> countVisible(l) end)
 
@@ -36,12 +54,21 @@ defmodule Day do
                |> Enum.map(fn l -> countVisible(l) end)
                |> flip()
 
-
     Enum.zip_with(horizontal, vertical, fn x, y -> Enum.zip_with(x, y, fn i, j -> max(i, j) end) end)
     |> Enum.reduce(0, fn l, acc -> acc + Enum.sum(l) end)
   end
 
-  def part2(line) do
+  def part2(forest) do
+    horizontal = forest
+                 |> Enum.map(fn l -> countViewScore(l) end)
+
+    vertical = forest
+               |> flip()
+               |> Enum.map(fn l -> countViewScore(l) end)
+               |> flip()
+
+    Enum.zip_with(horizontal, vertical, fn x, y -> Enum.zip_with(x, y, fn i, j -> i*j end) end)
+    |> Enum.reduce(0, fn l, acc -> max(Enum.max(l), acc) end)
   end
 
   def input do
@@ -49,6 +76,7 @@ defmodule Day do
          {:ok, input} <- File.read(input_filename) do
         input
         |> String.split("\n")
+        |> Enum.map(fn x -> String.split(x, "", trim: true) end)
     else
       _ -> :error
     end
@@ -65,7 +93,7 @@ defmodule Day do
 
   defp run_parts_with_timer(lines) do
     run_with_timer(1, fn -> part1(lines) end)
-#    run_with_timer(2, fn -> part2(lines) end)
+    run_with_timer(2, fn -> part2(lines) end)
   end
 
   defp run_with_timer(part, fun) do
