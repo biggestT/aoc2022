@@ -1,60 +1,79 @@
 defmodule Day do
 
-  defp doMove(move, {hx, hy}, {tx, ty}) do
+  defp tailCatchup({x, y}, tpsCur, tpsNxt) do
+    case tpsCur do
+      [] -> tpsNxt
+      [head | tail] ->
+        {tx, ty} = head
+        dh = x - tx
+        dv = y - ty
+        tp = cond do
+          # horizontal catchup
+          dh == 2 && dv == 0 -> {tx+1, ty}
+          dh == 2 && dv == 1 -> {tx+1, ty+1}
+          dh == 2 && dv == -1 -> {tx+1, ty-1}
+          dh == -2 && dv == 0 -> {tx-1, ty}
+          dh == -2 && dv == -1 -> {tx-1, ty-1}
+          dh == -2 && dv == 1 -> {tx-1, ty+1}
+          # vertical catchup
+          dh == 0 && dv == 2 -> {tx, ty+1}
+          dh == 1 && dv == 2 -> {tx+1, ty+1}
+          dh == -1 && dv == 2 -> {tx-1, ty+1}
+          dh == 0 && dv == -2 -> {tx, ty-1}
+          dh == 1 && dv == -2 -> {tx+1, ty-1}
+          dh == -1 && dv == -2 -> {tx-1, ty-1}
+          # special
+          dh == 2 && dv == 2 -> {tx+1, ty+1}
+          dh == 2 && dv == -2 -> {tx+1, ty-1}
+          dh == -2 && dv == 2 -> {tx-1, ty+1}
+          dh == -2 && dv == -2 -> {tx-1, ty-1}
+          true -> {tx, ty}
+        end
+        tailCatchup(tp, tail, tpsNxt ++ [tp])
+    end
+  end
+
+
+  defp doMove(move, [head | tail]) do
+    {hx, hy} = head
     hp = case move do
       "R" -> {hx+1, hy}
       "L" -> {hx-1, hy}
       "U" -> {hx, hy+1}
       "D" -> {hx, hy-1}
     end
-    dh = hx - tx
-    dv = hy - ty
-    tp = cond do
-      # horizontal catchup
-      dh == 2 && dv == 0 -> {tx+1, ty}
-      dh == 2 && dv == 1 -> {tx+1, ty+1}
-      dh == 2 && dv == -1 -> {tx+1, ty-1}
-      dh == -2 && dv == 0 -> {tx-1, ty}
-      dh == -2 && dv == -1 -> {tx-1, ty-1}
-      dh == -2 && dv == 1 -> {tx-1, ty+1}
-      # vertical catchup
-      dh == 0 && dv == 2 -> {tx, ty+1}
-      dh == 1 && dv == 2 -> {tx+1, ty+1}
-      dh == -1 && dv == 2 -> {tx-1, ty+1}
-      dh == 0 && dv == -2 -> {tx, ty-1}
-      dh == 1 && dv == -2 -> {tx+1, ty-1}
-      dh == -1 && dv == -2 -> {tx-1, ty-1}
-      true -> {tx, ty}
-    end
-    {hp, tp}
+    tps = tailCatchup(hp, tail, [])
+    [hp] ++ tps
   end
 
-  defp doMoves(moves, trace, hp, tp) do
+  defp doMoves(moves, trace, ps) do
     case moves do
-      [] -> {trace, hp, tp}
+      [] -> {trace, ps}
       [head | tail] ->
-        {hp, tp} = doMove(head, hp, tp)
-        doMoves(tail, trace ++ [tp], hp, tp)
+        ps = doMove(head, ps)
+        doMoves(tail, trace ++ [List.last(ps)], ps)
     end
   end
 
-  defp doCmds(cmds, trace, hp, tp) do
+  defp doCmds(cmds, trace, ps) do
     case cmds do
       [] -> trace
       [head | tail] ->
         [d, n] = String.split(head, " ", trim: true)
-        {nTrace, hp, tp} = doMoves(List.duplicate(d, String.to_integer(n)), [], hp, tp)
-        doCmds(tail, trace ++ nTrace, hp, tp)
+        {tTrace, ps} = doMoves(List.duplicate(d, String.to_integer(n)), [], ps)
+        doCmds(tail, trace ++ tTrace, ps)
     end
   end
 
 
   def part1(moves) do
-    positions = doCmds(moves, [], {0, 0}, {0, 0})
+    positions = doCmds(moves, [], List.duplicate({0, 0}, 2))
     positions |> Enum.uniq() |> Enum.count()
   end
 
-  def part2(_) do
+  def part2(moves) do
+    positions = doCmds(moves, [], List.duplicate({0, 0}, 10))
+    positions |> Enum.uniq() |> Enum.count()
   end
 
   def input do
