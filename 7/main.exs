@@ -30,34 +30,38 @@ defmodule Day do
     end
   end
 
-  defp calcSum(cmds, dirs, total) do
+  defp calcSizes(cmds, dirs, sizes) do
     case cmds do
-      [] -> total
+      [] -> sizes ++ [Enum.at(dirs, 0)[:size]]
       [cmd | tail] ->
         {curDir, dirs} = case cmd do
           "cd" <> _ -> cd(cmd, dirs)
           "ls" <> _ -> ls(cmd, dirs)
         end
         curSize = curDir[:size]
-        {dirs, total} = case dirs do
-          [] -> {[curDir] ++ dirs, total}
+        {dirs, sizes} = case dirs do
+          [] -> {[curDir] ++ dirs, sizes}
           [prevDir | remDirs] -> case curDir[:unks] do
-                    0 when (curSize > 100000) -> {[%{:unks => prevDir[:unks] - 1, :size => prevDir[:size] + curSize}] ++ remDirs, total}
-                    0 -> {[%{:unks => prevDir[:unks] - 1, :size => prevDir[:size] + curSize}] ++ remDirs, total + curDir[:size]}
-                                   -1 -> {dirs, total}
-                                   _ -> {[curDir] ++ dirs, total}
+                    0 -> {[%{:unks => prevDir[:unks] - 1, :size => prevDir[:size] + curSize}] ++ remDirs, sizes ++ [curSize]}
+                                   -1 -> {dirs, sizes}
+                                   _ -> {[curDir] ++ dirs, sizes}
             end
         end
-#        {cmd, curDir, dirs, total} |> IO.inspect()
-        calcSum(tail, dirs, total)
+        calcSizes(tail, dirs, sizes)
       end
   end
 
   def part1(cmds) do
-    calcSum(cmds, [], 0)
+    calcSizes(cmds, [], [])
+    |> Enum.filter(fn s -> s <= 100000 end)
+    |> Enum.sum()
   end
 
   def part2(cmds) do
+    sizes = calcSizes(cmds, [], [])
+    spaceLeft = 70000000 - (sizes |> Enum.max())
+    minDelete = 30000000 - spaceLeft
+    sizes |> Enum.sort() |> Enum.find(fn x -> x > minDelete end)
   end
 
   def input do
@@ -82,7 +86,7 @@ defmodule Day do
 
   defp run_parts_with_timer(lines) do
     run_with_timer(1, fn -> part1(lines) end)
-#    run_with_timer(2, fn -> part2(lines) end)
+    run_with_timer(2, fn -> part2(lines) end)
   end
 
   defp run_with_timer(part, fun) do
