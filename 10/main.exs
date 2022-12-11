@@ -1,28 +1,40 @@
 defmodule Day do
 
-  defp doOps(ops, x, c, s) do
+  defp doOps(ops, x, c, p1, p2) do
     c = c + 1
-    s = cond do
-      rem(c - 20, 40) == 0 -> s + x * c
-      true -> s
+    # part 1
+    p1 = cond do
+      rem(c - 20, 40) == 0 -> p1 + x * c
+      true -> p1
+    end
+    # part 
+    xpos = rem(c, 40)
+    char = cond do
+      x - 1 <= xpos and xpos <= x + 1 -> "#"
+      true -> "."
     end
     case ops do
-      [] -> s
+      [] -> {p1, p2}
       [head | tail] ->
         case head do
-          "addx " <> xadd -> doOps(["naddx " <> xadd] ++ tail, x, c, s)
-          "naddx " <> xadd -> doOps(tail, x + String.to_integer(xadd), c, s)
-          "noop" -> doOps(tail, x, c, s)
+          "addx " <> xadd -> doOps(["naddx " <> xadd] ++ tail, x, c, p1, p2 ++ [char])
+          "naddx " <> xadd -> doOps(tail, x + String.to_integer(xadd), c, p1, p2 ++ [char])
+          "noop" -> doOps(tail, x, c, p1, p2 ++ [char])
         end
     end
   end
 
 
   def part1(ops) do
-    doOps(ops, 1, 0, 0)
+    {p1, _} = doOps(ops, 1, 0, 0, [])
+    p1
   end
 
-  def part2(_) do
+  def part2(ops) do
+    {_, p2} = doOps(ops, 1, -1, 0, [])
+    p2
+    |> Enum.chunk_every(40)
+    |> Enum.join("\n")
   end
 
   def input do
